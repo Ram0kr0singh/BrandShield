@@ -1,6 +1,6 @@
 # BrandShield
 
-BrandShield is a Digital Risk Protection platform foundation. Future stages will monitor impersonating social profiles and applications; this repository deliberately contains none of that detection or dashboard functionality yet.
+BrandShield is a local, deterministic Digital Risk Protection competition prototype. It presents protected brand identity data, synthetic candidate monitoring, persisted detection evidence, investigation workflows, draft-only remediation, and an explanatory AI Analyst.
 
 ## Architecture
 
@@ -78,9 +78,11 @@ Use a normal PostgreSQL connection: host `localhost`, port from `POSTGRES_PORT` 
 - `data/` — future controlled seed/demo data
 - `docs/`, `scripts/` — documentation and automation space
 
-## Current scope
+## Current scope and demo safety
 
-Implemented: health reporting, configuration, CORS, database connectivity plumbing, Compose PostgreSQL, Alembic migrations, and a queryable Brand domain layer.
+The demo uses persisted synthetic records only: it does not scrape social networks or app stores, and it does not submit takedowns. The deterministic detection engine remains authoritative for risk score, severity, classification, and evidence. The optional Groq-hosted analyst is server-side and explanatory only; without a usable provider it returns an evidence-grounded deterministic fallback. Remediation content is always **DRAFT ONLY — NOT SENT**.
+
+Use the dashboard to select Nike, run a local scan, open **N1ke Shopping**, and inspect its persisted risk, publisher mismatch, look-alike transformation, investigation workspace, remediation draft, and analyst explanation. The Brand Profile page shows the persisted official identity baseline used for comparisons.
 
 ## Brand domain API
 
@@ -97,7 +99,7 @@ The migration adds `brands`, `official_social_accounts`, `official_apps`, `offic
 
 ## Detection API
 
-The deterministic local engine persists one current analysis per candidate, with ordered structured evidence. Exact official-asset matches are always `SAFE`; remote logo URLs are explicitly reported as unavailable rather than assigned a fabricated score.
+The deterministic local engine persists one current analysis per candidate, with ordered structured evidence. Exact official-asset matches are always `SAFE`; remote logo URLs are explicitly reported as unavailable rather than assigned a fabricated score. The dashboard and monitoring views render these persisted results; the optional analyst explains them but cannot modify them.
 
 - `POST` `/api/analyze/name`
 - `POST` `/api/analyze/social/{candidate_id}`
@@ -105,6 +107,6 @@ The deterministic local engine persists one current analysis per candidate, with
 - `POST` `/api/detections/scan`
 - `GET` `/api/detections` and `GET` `/api/detections/{id}`
 
-Scores use available name, look-alike, description, and publisher signals. A similarity-only outcome is capped below `MEDIUM`; the score is not a statistical confidence measure. No LLM, external API, or live scraping is used.
+Scores use available name, look-alike, description, and publisher signals. A similarity-only outcome is capped below `MEDIUM`; the score is not a statistical confidence measure. No live scraping is used. The optional server-side analyst may call the configured Groq-compatible endpoint, while the browser never sends credentials to a provider.
 
-Not implemented: scraping, live monitoring, authentication, dashboard UI, and production deployment.
+Not implemented: live scraping, live external-platform monitoring, authentication, automated takedowns, and production deployment.
