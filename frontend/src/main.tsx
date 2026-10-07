@@ -1,30 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
-import { getHealth, type Health } from "./api";
+import { BrowserRouter, Link, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { AlertTriangle, AppWindow, Eye, Radar, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { api, type Brand, type Detection, type Overview, type Threat } from "./api";
 import "./styles.css";
-
-function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getHealth().then(setHealth).catch(() => setError("API unavailable"));
-  }, []);
-
-  const status = error ?? (health ? `API ${health.status}; database ${health.database}` : "Checking API…");
-  return (
-    <main>
-      <section className="card">
-        <ShieldCheck aria-hidden="true" size={42} />
-        <p className="eyebrow">Digital Risk Protection</p>
-        <h1>BrandShield</h1>
-        <p className="description">Development foundation is ready for future monitoring and detection work.</p>
-        <p className={error || health?.status === "degraded" ? "status warning" : "status"}>{status}</p>
-      </section>
-    </main>
-  );
+const colors:Record<string,string>={CRITICAL:"#ef4444",HIGH:"#f97316",MEDIUM:"#fbbf24",LOW:"#60a5fa",SAFE:"#34d399"};
+const Badge=({v}:{v:string})=><span className={`badge ${v.toLowerCase()}`}>{v.replaceAll("_"," ")}</span>;
+function Shell({children}:{children:React.ReactNode}){return <div className="shell"><aside><div className="brand"><ShieldCheck/>BrandShield</div><p className="caption">DIGITAL RISK PROTECTION</p><nav><Link to="/"><Eye/>Overview</Link><Link to="/social"><Users/>Social Media</Link><Link to="/apps"><AppWindow/>App Stores</Link><Link to="/threats"><AlertTriangle/>Threats</Link><Link to="/lookalikes"><Radar/>Look-alike Detection</Link></nav><div className="active"><i/> Monitoring active</div></aside><main className="content">{children}</main></div>}
+const Loading=({children}:{children:React.ReactNode})=><div className="loader">{children}</div>;
+function Table({items,open}:{items:Threat[];open:(id:string)=>void}){return <section className="tablecard"><h2>Recent threats</h2><p>Prioritized from persisted detection evidence.</p>{items.length?<table><thead><tr><th>Candidate</th><th>Source</th><th>Threat type</th><th>Risk</th><th>Severity</th><th>Status</th></tr></thead><tbody>{items.map(t=><tr key={t.id} onClick={()=>open(t.id)}><td>{t.name}</td><td>{t.source}</td><td>{t.threat_type?.replaceAll("_"," ")}</td><td>{t.risk_score.toFixed(2)}</td><td><Badge v={t.severity}/></td><td><Badge v={t.status}/></td></tr>)}</tbody></table>:<div className="empty">No threats detected. No suspicious candidates were identified for this protected brand.</div>}</section>}
+function formatTransformation(transformations: any[] | undefined, official: string, candidate: string) {
+  if (!transformations || transformations.length === 0) return "No transformation recorded";
+  return transformations.map((t: any) => {
+    if (t.type === "CHARACTER_SUBSTITUTION") {
+      const candBase = candidate.split(" ")[0];
+      return `${official} → ${candBase} (${t.from} → ${t.to})`;
+    }
+    if (t.type === "ADDED_WORDS" && t.tokens) {
+      return `Added words: ${t.tokens.join(", ")}`;
+    }
+    if (t.type === "SPACING_VARIATION") {
+      return "Spacing variation";
+    }
+    return JSON.stringify(t);
+  }).join(" · ");
 }
-
-createRoot(document.getElementById("root")!).render(<BrowserRouter><App /></BrowserRouter>);
+function OverviewPage(){const [brands,setBrands]=useState<Brand[]>([]),[id,setId]=useState(""),[data,setData]=useState<Overview|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),nav=useNavigate();const load=useCallback(async(x:string)=>{setError("");setData(null);try{setData(await api.overview(x))}catch{setError("Unable to load dashboard data.")}},[]);useEffect(()=>{api.brands().then(x=>{setBrands(x);const initial=x.find(b=>b.name.toLowerCase()==="nike")??x[0];if(initial){setId(initial.id);load(initial.id)}}).catch(()=>setError("Unable to load protected brands."))},[load]);const scan=async()=>{setBusy(true);try{await api.scan(id);await load(id)}catch{setError("Scan could not be completed.")}finally{setBusy(false)}};if(error)return <Loading>{error} <button onClick={()=>load(id)}>Retry</button></Loading>;if(!data)return <Loading>Loading dashboard...</Loading>;const metrics=[["Detected threats",data.summary.detected_threats,AlertTriangle],["High risk",data.summary.high_risk,AlertTriangle],["Look-alikes",data.summary.lookalikes,Radar],["Candidates monitored",data.summary.total_candidates,Users]];return <><header><div><p className="eyebrow">THREAT INTELLIGENCE</p><h1>Security overview</h1><p>Prioritization for your protected digital presence.</p></div><div className="actions"><label>Protected brand<select value={id} onChange={e=>{setId(e.target.value);load(e.target.value)}}>{brands.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><button className="primary" onClick={scan} disabled={busy}><RefreshCw size={16} className={busy?"spin":""}/>{busy?"Scanning...":"Scan now"}</button></div></header><div className="scanline">{data.last_scan?`Last scan completed ${data.last_scan.completed_at?new Date(data.last_scan.completed_at).toLocaleString():"recently"} · ${data.last_scan.candidate_count} candidates analyzed`:"No monitoring run recorded yet. Run a scan to establish the latest monitoring snapshot."}</div><section className="metrics">{metrics.map(([label,value,Icon])=>{const I=Icon as typeof AlertTriangle;return <article className="metric" key={label as string}><I/><span>{label as string}</span><strong>{value as number}</strong></article>})}</section><section className="charts"><article><h2>Risk distribution</h2><ResponsiveContainer width="100%" height={240}><BarChart data={data.risk_distribution}><XAxis dataKey="severity"/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="count">{data.risk_distribution.map(x=><Cell key={x.severity} fill={colors[x.severity]}/>)}</Bar></BarChart></ResponsiveContainer></article><article><h2>Threat types</h2>{data.threat_type_distribution.length?<ResponsiveContainer width="100%" height={240}><PieChart><Pie data={data.threat_type_distribution} dataKey="count" nameKey="threat_type" outerRadius={85}>{data.threat_type_distribution.map((x,i)=><Cell key={x.threat_type} fill={["#60a5fa","#f97316","#a78bfa","#fbbf24"][i%4]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>:<p className="empty">No threats detected for this brand.</p>}</article></section><Table items={data.recent_threats} open={x=>nav(`/threats/${x}`)}/></>}
+function List({mode}:{mode:string}){const [all,setAll]=useState<Detection[]|null>(null),[severity,setSeverity]=useState("ALL"),[source,setSource]=useState("ALL"),nav=useNavigate();useEffect(()=>{api.detections().then(setAll)},[]);if(!all)return <Loading>Loading monitoring data...</Loading>;let d=all;if(mode==="social"){d=all.filter(x=>x.candidate.source==="Social Media")}else if(mode==="apps"){d=all.filter(x=>x.candidate.source==="App Store")}else if(mode==="look"){d=all.filter(x=>x.evidence.some(e=>e.signal_type==="LOOKALIKE_NAME"&&e.details?.detected===true))}d=d.filter(x=>(severity==="ALL"||x.severity===severity)&&(source==="ALL"||x.candidate.source===source));return <><header><div><p className="eyebrow">MONITORING</p><h1>{mode==="social"?"Social media monitoring":mode==="apps"?"App store monitoring":mode==="look"?"Look-alike detection":"Threats"}</h1></div>{mode!=="look"&&<div className="filters"><select value={severity} onChange={e=>setSeverity(e.target.value)}><option value="ALL">All severities</option>{["HIGH","MEDIUM","LOW","SAFE"].map(x=><option key={x}>{x}</option>)}</select>{mode==="all"&&<select value={source} onChange={e=>setSource(e.target.value)}><option value="ALL">All sources</option><option>Social Media</option><option>App Store</option></select>}</div>}</header>{mode==="look"?<section className="lookgrid">{d.map(x=>{const e=x.evidence.find(v=>v.signal_type==="LOOKALIKE_NAME");const officialName=String(e?.details?.official_name||"Nike");return <article className="look" key={x.id}><p>OFFICIAL</p><strong>{officialName}</strong><p>CANDIDATE</p><strong>{x.candidate.name}</strong><p>TRANSFORMATION</p><span>{formatTransformation(e?.details?.transformations as any[],officialName,x.candidate.name)}</span><div><Badge v={x.severity}/> {x.risk_score.toFixed(2)}</div></article>})}</section>:<Table items={d.map(x=>({...x,name:x.candidate.name,source:x.candidate.source,publisher:x.candidate.publisher}))} open={x=>nav(`/threats/${x}`)}/>}</>}
+function Detail(){const {id}=useParams(),[d,setD]=useState<Detection|null>(null);useEffect(()=>{if(id)api.detection(id).then(setD)},[id]);if(!d)return <Loading>Loading threat...</Loading>;return <><header><div><p className="eyebrow">THREAT INVESTIGATION</p><h1>{d.candidate.name}</h1><p>{d.candidate.source}{d.candidate.publisher?` · Publisher: ${d.candidate.publisher}`:""}</p></div><div><Badge v={d.severity}/> <strong className="score">{d.risk_score.toFixed(2)}</strong></div></header><section className="detail"><article><h2>Detection</h2><p>Threat type: {d.threat_type?.replaceAll("_"," ")||"None"}</p><p>Status: <Badge v={d.status}/></p><p>Detected: {new Date(d.detected_at).toLocaleString()}</p></article><article><h2>Persisted evidence</h2>{d.evidence.map(e=><div className="evidence" key={e.signal_type}><strong>{e.signal_type.replaceAll("_"," ")}</strong><span>{e.available?"Available":"Unavailable"}</span><span>{e.score!==null&&e.score!==undefined?e.score.toFixed(2):"—"}</span><p>{Object.entries(e.details).map(([k,v])=>`${k}: ${typeof v==="object"?JSON.stringify(v):v}`).join(" · ")}</p></div>)}</article></section></>}
+function App(){return <Shell><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/social" element={<List mode="social"/>}/><Route path="/apps" element={<List mode="apps"/>}/><Route path="/threats" element={<List mode="all"/>}/><Route path="/lookalikes" element={<List mode="look"/>}/><Route path="/threats/:id" element={<Detail/>}/><Route path="*" element={<OverviewPage/>}/></Routes></Shell>};createRoot(document.getElementById("root")!).render(<BrowserRouter><App/></BrowserRouter>);

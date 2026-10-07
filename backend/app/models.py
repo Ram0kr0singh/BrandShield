@@ -79,6 +79,12 @@ class ThreatType(str, enum.Enum):
     SUSPICIOUS_LINK = "SUSPICIOUS_LINK"
 
 
+class MonitoringRunStatus(str, enum.Enum):
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class Timestamped:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -99,6 +105,7 @@ class Brand(Timestamped, Base):
     social_candidates: Mapped[list[SocialCandidate]] = relationship(back_populates="brand", cascade="all, delete-orphan")
     app_candidates: Mapped[list[AppCandidate]] = relationship(back_populates="brand", cascade="all, delete-orphan")
     detections: Mapped[list[Detection]] = relationship(back_populates="brand", cascade="all, delete-orphan")
+    monitoring_runs: Mapped[list[MonitoringRun]] = relationship(back_populates="brand", cascade="all, delete-orphan")
 
 
 class OfficialSocialAccount(Timestamped, Base):
@@ -222,3 +229,23 @@ class DetectionEvidence(Base):
     priority: Mapped[int] = mapped_column(Integer, nullable=False)
     details: Mapped[dict] = mapped_column(JSON, nullable=False)
     detection: Mapped[Detection] = relationship(back_populates="evidence")
+
+
+class MonitoringRun(Base):
+    __tablename__ = "monitoring_runs"
+    __table_args__ = (Index("ix_monitoring_run_brand_created", "brand_id", "created_at"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    brand_id: Mapped[UUID] = mapped_column(ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[MonitoringRunStatus] = mapped_column(Enum(MonitoringRunStatus, name="monitoring_run_status", native_enum=False), nullable=False, default=MonitoringRunStatus.RUNNING)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    candidate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    social_candidate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    app_candidate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    safe_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    low_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    medium_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    high_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    critical_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    brand: Mapped[Brand] = relationship(back_populates="monitoring_runs")

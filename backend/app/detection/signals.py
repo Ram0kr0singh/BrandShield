@@ -22,7 +22,18 @@ def name_signal(brand: Brand, candidate_name: str) -> tuple[Signal, dict]:
 
 
 def lookalike_signal(name_result: dict) -> Signal:
-    return Signal("LOOKALIKE_NAME", True, 100.0 if name_result["detected"] else 0.0, 3, {"detected": name_result["detected"], "transformations": name_result["transformations"]})
+    return Signal(
+        "LOOKALIKE_NAME",
+        True,
+        100.0 if name_result["detected"] else 0.0,
+        3,
+        {
+            "detected": name_result["detected"],
+            "official_name": name_result.get("official_name"),
+            "candidate_name": name_result.get("candidate_name"),
+            "transformations": name_result["transformations"],
+        },
+    )
 
 
 def description_signal(candidate_description: str | None, official_descriptions: list[str]) -> Signal:

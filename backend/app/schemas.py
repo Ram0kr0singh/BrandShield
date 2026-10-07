@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, DetectionCandidateType, DetectionStatus, Severity, SocialPlatform, ThreatType
+from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, DetectionCandidateType, DetectionStatus, MonitoringRunStatus, Severity, SocialPlatform, ThreatType
 
 
 class Schema(BaseModel):
@@ -149,6 +149,7 @@ class DetectionRead(Schema):
     created_at: datetime
     updated_at: datetime
     evidence: list[EvidenceRead]
+    candidate: Optional[dict] = None
 
 
 class NameAnalysisRequest(Schema):
@@ -170,3 +171,34 @@ class ScanRead(Schema):
     analyzed: int
     created_or_updated: int
     by_severity: dict[str, int]
+
+
+class MonitoringScanRequest(Schema):
+    brand_id: UUID
+
+
+class MonitoringRunRead(Schema):
+    id: UUID
+    brand_id: UUID
+    status: MonitoringRunStatus
+    started_at: datetime
+    completed_at: Optional[datetime]
+    candidate_count: int
+    social_candidate_count: int
+    app_candidate_count: int
+    safe_count: int
+    low_count: int
+    medium_count: int
+    high_count: int
+    critical_count: int
+    created_at: datetime
+
+
+class DashboardOverview(Schema):
+    brand: dict
+    summary: dict[str, int]
+    risk_distribution: list[dict]
+    source_distribution: list[dict]
+    threat_type_distribution: list[dict]
+    recent_threats: list[dict]
+    last_scan: Optional[dict]

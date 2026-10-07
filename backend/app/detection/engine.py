@@ -102,7 +102,12 @@ def analyze_app_candidate(db: Session, candidate_id: UUID) -> Detection:
     return _persist(db, brand, DetectionCandidateType.APP, candidate.id, signals)
 
 
-def scan_all(db: Session) -> list[Detection]:
-    detections = [analyze_social_candidate(db, item.id) for item in db.scalars(select(SocialCandidate))]
-    detections.extend(analyze_app_candidate(db, item.id) for item in db.scalars(select(AppCandidate)))
+def scan_all(db: Session, brand_id: UUID | None = None) -> list[Detection]:
+    social_query = select(SocialCandidate)
+    app_query = select(AppCandidate)
+    if brand_id is not None:
+        social_query = social_query.where(SocialCandidate.brand_id == brand_id)
+        app_query = app_query.where(AppCandidate.brand_id == brand_id)
+    detections = [analyze_social_candidate(db, item.id) for item in db.scalars(social_query)]
+    detections.extend(analyze_app_candidate(db, item.id) for item in db.scalars(app_query))
     return detections

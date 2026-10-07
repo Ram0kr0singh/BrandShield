@@ -1,9 +1,7 @@
-export type Health = { status: "ok" | "degraded"; database: "connected" | "unavailable" };
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-
-export async function getHealth(): Promise<Health> {
-  const response = await fetch(`${apiBaseUrl}/api/health`);
-  if (!response.ok) throw new Error(`API responded with ${response.status}`);
-  return response.json() as Promise<Health>;
-}
+const base = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+async function request<T>(path: string, init?: RequestInit): Promise<T> { const r = await fetch(`${base}/api${path}`, init); if (!r.ok) throw new Error(`Request failed (${r.status})`); return r.json() as Promise<T>; }
+export type Brand = { id: string; name: string };
+export type Threat = { id:string; name:string; source:string; publisher?:string|null; threat_type:string|null; risk_score:number; severity:string; status:string; detected_at:string };
+export type Overview = { brand:Brand; summary:Record<string,number>; risk_distribution:{severity:string;count:number}[]; source_distribution:{source:string;count:number}[]; threat_type_distribution:{threat_type:string;count:number}[]; recent_threats:Threat[]; last_scan:{completed_at:string|null;candidate_count:number}|null };
+export type Detection = { id:string; risk_score:number; severity:string; threat_type:string|null; status:string; detected_at:string; candidate:{name:string;source:string;publisher?:string|null}; evidence:{signal_type:string;available:boolean;score:number|null;details:Record<string,unknown>}[] };
+export const api = { brands:()=>request<Brand[]>("/brands"), overview:(id:string)=>request<Overview>(`/dashboard/overview?brand_id=${id}`), scan:(id:string)=>request("/monitoring/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({brand_id:id})}), detections:()=>request<Detection[]>("/detections"), detection:(id:string)=>request<Detection>(`/detections/${id}`) };

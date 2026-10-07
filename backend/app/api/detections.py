@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.database.session import get_db
 from app.detection.engine import analyze_app_candidate, analyze_social_candidate, scan_all
 from app.detection.normalization import analyze_name
-from app.models import Detection
+from app.models import AppCandidate, Detection, DetectionCandidateType, SocialCandidate
 from app.schemas import DetectionRead, NameAnalysisRead, NameAnalysisRequest, ScanRead
 
 router = APIRouter(tags=["detections"])
@@ -15,6 +15,17 @@ router = APIRouter(tags=["detections"])
 
 def _not_found(error: LookupError) -> HTTPException:
     return HTTPException(status_code=404, detail=str(error))
+
+
+def _with_candidate(detection: Detection, db: Session) -> dict:
+    data = DetectionRead.model_validate(detection).model_dump()
+    if detection.candidate_type == DetectionCandidateType.SOCIAL:
+        candidate = db.get(SocialCandidate, detection.candidate_id)
+        data["candidate"] = {"name": (candidate.display_name or candidate.handle) if candidate else "Unknown candidate", "source": "Social Media", "handle": candidate.handle if candidate else None}
+    else:
+        candidate = db.get(AppCandidate, detection.candidate_id)
+        data["candidate"] = {"name": candidate.app_name if candidate else "Unknown candidate", "source": "App Store", "publisher": candidate.developer_name if candidate else None}
+    return data
 
 
 @router.post("/analyze/name", response_model=NameAnalysisRead)
@@ -48,13 +59,13 @@ def scan(db: Session = Depends(get_db)) -> ScanRead:
 
 
 @router.get("/detections", response_model=list[DetectionRead])
-def list_detections(db: Session = Depends(get_db)) -> list[Detection]:
-    return list(db.scalars(select(Detection).options(selectinload(Detection.evidence)).order_by(Detection.detected_at.desc())))
+def list_detections(db: Session = Depends(get_db)) -> list[dict]:
+    return [_with_candidate(item, db) for item in db.scalars(select(Detection).options(selectinload(Detection.evidence)).order_by(Detection.detected_at.desc()))]
 
 
 @router.get("/detections/{detection_id}", response_model=DetectionRead)
-def get_detection(detection_id: UUID, db: Session = Depends(get_db)) -> Detection:
+def get_detection(detection_id: UUID, db: Session = Depends(get_db)) -> dict:
     detection = db.scalar(select(Detection).options(selectinload(Detection.evidence)).where(Detection.id == detection_id))
     if detection is None:
         raise HTTPException(status_code=404, detail="Detection not found")
-    return detection
+    return _with_candidate(detection, db)
