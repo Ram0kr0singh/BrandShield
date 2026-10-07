@@ -255,3 +255,22 @@ class InvestigationRead(Schema):
     notes: list[InvestigationNoteRead]
     activity: list[InvestigationActivityRead]
     drafts: list[RemediationDraftRead]
+
+
+class AnalystEvidenceRead(Schema):
+    signal_type: str
+    summary: str
+    score: Optional[float]
+    details: dict
+
+
+class AnalystAnalysisRead(Schema):
+    summary: str
+    risk_rationale: str
+    key_evidence: list[AnalystEvidenceRead]
+    uncertainties: list[str]
+    recommended_actions: list[str]
+    confidence: str
+    source_facts: dict
+    generated_at: datetime
+    provider: str

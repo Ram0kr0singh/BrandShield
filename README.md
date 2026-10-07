@@ -20,7 +20,7 @@ Do not install native PostgreSQL: the development database runs only through Doc
 
 > Validation note: the frontend install, development server, and production build were validated when this foundation was created. The Python, Docker, migration, and API commands below are the required repeatable commands, but were not run in this checkout because Python 3.13 was unavailable through `py` and Docker Desktop's engine was stopped.
 
-1. Copy `.env.example` to `.env`, then set a unique local `POSTGRES_PASSWORD` and make the password in `DATABASE_URL` match. `.env` is ignored by Git.
+1. Copy `.env.example` to `.env`, then set a unique local `POSTGRES_PASSWORD` and make the password in `DATABASE_URL` match. To enable the Groq-hosted analyst, set `LLM_API_KEY` in `.env` to a valid Groq API key; `LLM_MODEL` and `LLM_BASE_URL` default to `openai/gpt-oss-120b` and `https://api.groq.com/openai/v1`. Without a key, the backend uses its deterministic fallback. `.env` is ignored by Git.
 2. Confirm the required interpreter: `py --list`.
 3. Create the project environment: `py -3.13 -m venv .venv`.
 4. Activate it: `.venv\Scripts\activate`.

@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.database.session import get_db
 from app.detection.engine import analyze_app_candidate, analyze_social_candidate, scan_all
 from app.detection.normalization import analyze_name
-from app.models import AppCandidate, Detection, DetectionCandidateType, SocialCandidate
-from app.schemas import DetectionRead, NameAnalysisRead, NameAnalysisRequest, ScanRead
+from app.analyst import build_context, generate_analysis
+from app.core.config import get_settings
+from app.models import AppCandidate, Brand, Detection, DetectionCandidateType, SocialCandidate
+from app.schemas import AnalystAnalysisRead, DetectionRead, NameAnalysisRead, NameAnalysisRequest, ScanRead
 
 router = APIRouter(tags=["detections"])
 
@@ -69,3 +71,16 @@ def get_detection(detection_id: UUID, db: Session = Depends(get_db)) -> dict:
     if detection is None:
         raise HTTPException(status_code=404, detail="Detection not found")
     return _with_candidate(detection, db)
+
+
+@router.post("/detections/{detection_id}/analyze", response_model=AnalystAnalysisRead)
+def analyze_detection(detection_id: UUID, db: Session = Depends(get_db)) -> dict:
+    """Explain persisted deterministic facts without changing any detection state."""
+    detection = db.scalar(select(Detection).options(selectinload(Detection.evidence)).where(Detection.id == detection_id))
+    if detection is None:
+        raise HTTPException(status_code=404, detail="Detection not found")
+    brand = db.get(Brand, detection.brand_id)
+    candidate = db.get(SocialCandidate if detection.candidate_type == DetectionCandidateType.SOCIAL else AppCandidate, detection.candidate_id)
+    if brand is None or candidate is None:
+        raise HTTPException(status_code=422, detail="Persisted brand or candidate data is unavailable")
+    return generate_analysis(build_context(detection, brand, candidate), get_settings())
