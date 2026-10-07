@@ -85,6 +85,19 @@ class MonitoringRunStatus(str, enum.Enum):
     FAILED = "FAILED"
 
 
+class InvestigationEventType(str, enum.Enum):
+    INVESTIGATION_CREATED = "INVESTIGATION_CREATED"
+    STATUS_CHANGED = "STATUS_CHANGED"
+    NOTE_ADDED = "NOTE_ADDED"
+    REMEDIATION_DRAFT_GENERATED = "REMEDIATION_DRAFT_GENERATED"
+
+
+class RemediationDraftType(str, enum.Enum):
+    SOCIAL_PLATFORM = "SOCIAL_PLATFORM"
+    APP_STORE = "APP_STORE"
+    DOMAIN_REGISTRAR = "DOMAIN_REGISTRAR"
+
+
 class Timestamped:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -216,6 +229,9 @@ class Detection(Timestamped, Base):
     detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     brand: Mapped[Brand] = relationship(back_populates="detections")
     evidence: Mapped[list[DetectionEvidence]] = relationship(back_populates="detection", cascade="all, delete-orphan", order_by="DetectionEvidence.priority")
+    notes: Mapped[list[InvestigationNote]] = relationship(back_populates="detection", cascade="all, delete-orphan", order_by="InvestigationNote.created_at")
+    activity: Mapped[list[InvestigationActivity]] = relationship(back_populates="detection", cascade="all, delete-orphan", order_by="InvestigationActivity.created_at")
+    remediation_drafts: Mapped[list[RemediationDraft]] = relationship(back_populates="detection", cascade="all, delete-orphan", order_by="RemediationDraft.created_at.desc()")
 
 
 class DetectionEvidence(Base):
@@ -229,6 +245,44 @@ class DetectionEvidence(Base):
     priority: Mapped[int] = mapped_column(Integer, nullable=False)
     details: Mapped[dict] = mapped_column(JSON, nullable=False)
     detection: Mapped[Detection] = relationship(back_populates="evidence")
+
+
+class InvestigationNote(Base):
+    __tablename__ = "investigation_notes"
+    __table_args__ = (Index("ix_investigation_note_detection_created", "detection_id", "created_at"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    detection_id: Mapped[UUID] = mapped_column(ForeignKey("detections.id", ondelete="CASCADE"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    actor: Mapped[str] = mapped_column(String(80), nullable=False, default="local-demo-analyst")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    detection: Mapped[Detection] = relationship(back_populates="notes")
+
+
+class InvestigationActivity(Base):
+    __tablename__ = "investigation_activity"
+    __table_args__ = (Index("ix_investigation_activity_detection_created", "detection_id", "created_at"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    detection_id: Mapped[UUID] = mapped_column(ForeignKey("detections.id", ondelete="CASCADE"), nullable=False)
+    event_type: Mapped[InvestigationEventType] = mapped_column(Enum(InvestigationEventType, name="investigation_event_type", native_enum=False), nullable=False)
+    previous_value: Mapped[Optional[str]] = mapped_column(String(80))
+    new_value: Mapped[Optional[str]] = mapped_column(String(80))
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    actor: Mapped[str] = mapped_column(String(80), nullable=False, default="local-demo-analyst")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    detection: Mapped[Detection] = relationship(back_populates="activity")
+
+
+class RemediationDraft(Base):
+    __tablename__ = "remediation_drafts"
+    __table_args__ = (Index("ix_remediation_draft_detection_created", "detection_id", "created_at"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    detection_id: Mapped[UUID] = mapped_column(ForeignKey("detections.id", ondelete="CASCADE"), nullable=False)
+    draft_type: Mapped[RemediationDraftType] = mapped_column(Enum(RemediationDraftType, name="remediation_draft_type", native_enum=False), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_summary: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    actor: Mapped[str] = mapped_column(String(80), nullable=False, default="local-demo-analyst")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    detection: Mapped[Detection] = relationship(back_populates="remediation_drafts")
 
 
 class MonitoringRun(Base):

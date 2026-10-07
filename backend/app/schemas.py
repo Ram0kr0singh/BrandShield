@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, DetectionCandidateType, DetectionStatus, MonitoringRunStatus, Severity, SocialPlatform, ThreatType
+from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, DetectionCandidateType, DetectionStatus, InvestigationEventType, MonitoringRunStatus, RemediationDraftType, Severity, SocialPlatform, ThreatType
 
 
 class Schema(BaseModel):
@@ -202,3 +202,56 @@ class DashboardOverview(Schema):
     threat_type_distribution: list[dict]
     recent_threats: list[dict]
     last_scan: Optional[dict]
+
+
+class StatusUpdate(Schema):
+    status: DetectionStatus
+
+
+class NoteCreate(Schema):
+    content: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("content")
+    @classmethod
+    def content_is_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("content must not be blank")
+        return value.strip()
+
+
+class InvestigationNoteRead(Schema):
+    id: UUID
+    content: str
+    actor: str
+    created_at: datetime
+
+
+class InvestigationActivityRead(Schema):
+    id: UUID
+    event_type: InvestigationEventType
+    previous_value: Optional[str]
+    new_value: Optional[str]
+    details: dict
+    actor: str
+    created_at: datetime
+
+
+class RemediationDraftCreate(Schema):
+    draft_type: RemediationDraftType
+
+
+class RemediationDraftRead(Schema):
+    id: UUID
+    draft_type: RemediationDraftType
+    content: str
+    evidence_summary: list
+    actor: str
+    created_at: datetime
+
+
+class InvestigationRead(Schema):
+    detection_id: UUID
+    status: DetectionStatus
+    notes: list[InvestigationNoteRead]
+    activity: list[InvestigationActivityRead]
+    drafts: list[RemediationDraftRead]

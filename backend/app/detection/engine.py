@@ -57,6 +57,7 @@ def _persist(db: Session, brand: Brand, candidate_type: DetectionCandidateType, 
     official_match = bool(official.details["matched"])
     score, confidence = _score(signals, official_match)
     detection = db.scalar(select(Detection).where(Detection.candidate_type == candidate_type, Detection.candidate_id == candidate_id))
+    is_new = detection is None
     if detection is None:
         detection = Detection(brand_id=brand.id, candidate_type=candidate_type, candidate_id=candidate_id, severity=_severity(score), risk_score=score, confidence=confidence, official_match=official_match, lookalike_detected=False)
         db.add(detection)
@@ -70,7 +71,10 @@ def _persist(db: Session, brand: Brand, candidate_type: DetectionCandidateType, 
     detection.lookalike_detected = bool(next(item for item in signals if item.signal_type == "LOOKALIKE_NAME").details["detected"])
     detection.severity = _severity(score)
     detection.threat_type = _threat_type(candidate_type, score, signals)
-    detection.status = DetectionStatus.FALSE_POSITIVE if official_match else DetectionStatus.NEW
+    # A new deterministic finding starts in a sensible state, but later scans
+    # must never erase a local analyst's investigation decision.
+    if is_new:
+        detection.status = DetectionStatus.FALSE_POSITIVE if official_match else DetectionStatus.NEW
     detection.detected_at = datetime.now(timezone.utc)
     detection.evidence.extend(DetectionEvidence(signal_type=item.signal_type, available=item.available, score=item.score, priority=item.priority, details=item.details) for item in sorted(signals, key=lambda value: value.priority))
     db.commit()
