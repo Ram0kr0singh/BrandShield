@@ -37,10 +37,16 @@ docker compose up -d postgres
 docker compose ps
 ```
 
-Run the prepared (currently empty) migration history, from `backend`:
+Run the domain migration history, from `backend`:
 
 ```powershell
 ..\.venv\Scripts\python.exe -m alembic upgrade head
+```
+
+Seed deterministic, clearly synthetic demo records (safe to run repeatedly):
+
+```powershell
+..\.venv\Scripts\python.exe -m app.seed
 ```
 
 Start the API, from `backend`:
@@ -74,6 +80,19 @@ Use a normal PostgreSQL connection: host `localhost`, port from `POSTGRES_PORT` 
 
 ## Current scope
 
-Implemented: health reporting, configuration, CORS, database connectivity plumbing, Compose PostgreSQL, and Alembic infrastructure.
+Implemented: health reporting, configuration, CORS, database connectivity plumbing, Compose PostgreSQL, Alembic migrations, and a queryable Brand domain layer.
+
+## Brand domain API
+
+All records below are local, controlled demo data; they are not scraped, live, or risk-scored.
+
+- `GET` / `POST` `/api/brands`
+- `GET` `/api/brands/{id}` and `/api/brands/{id}/assets`
+- `GET` / `POST` `/api/brands/{id}/social-accounts`
+- `GET` / `POST` `/api/brands/{id}/apps`
+- `GET` / `POST` `/api/brands/{id}/social-candidates`
+- `GET` / `POST` `/api/brands/{id}/app-candidates`
+
+The migration adds `brands`, `official_social_accounts`, `official_apps`, `official_brand_assets`, `social_candidates`, and `app_candidates`. DBeaver can inspect these tables using the existing local connection. Candidate rows remain observations (`NEW`, `REVIEWED`, or `IGNORED`) and intentionally carry no threat, risk, or confidence score.
 
 Not implemented: scraping, monitoring, risk scoring, look-alike detection, ML/AI, authentication, threat data, dashboards, and production deployment.
