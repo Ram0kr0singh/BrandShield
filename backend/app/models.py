@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -48,6 +48,37 @@ class CandidateStatus(str, enum.Enum):
     IGNORED = "IGNORED"
 
 
+class DetectionCandidateType(str, enum.Enum):
+    SOCIAL = "SOCIAL"
+    APP = "APP"
+
+
+class DetectionStatus(str, enum.Enum):
+    NEW = "NEW"
+    INVESTIGATING = "INVESTIGATING"
+    CONFIRMED_THREAT = "CONFIRMED_THREAT"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    DISMISSED = "DISMISSED"
+
+
+class Severity(str, enum.Enum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+    SAFE = "SAFE"
+
+
+class ThreatType(str, enum.Enum):
+    BRAND_IMPERSONATION = "BRAND_IMPERSONATION"
+    FAKE_COMPANY_PAGE = "FAKE_COMPANY_PAGE"
+    SCAM_ACCOUNT = "SCAM_ACCOUNT"
+    FAKE_APP = "FAKE_APP"
+    LOOKALIKE_IDENTITY = "LOOKALIKE_IDENTITY"
+    SUSPICIOUS_PUBLISHER = "SUSPICIOUS_PUBLISHER"
+    SUSPICIOUS_LINK = "SUSPICIOUS_LINK"
+
+
 class Timestamped:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -67,6 +98,7 @@ class Brand(Timestamped, Base):
     assets: Mapped[list[OfficialBrandAsset]] = relationship(back_populates="brand", cascade="all, delete-orphan")
     social_candidates: Mapped[list[SocialCandidate]] = relationship(back_populates="brand", cascade="all, delete-orphan")
     app_candidates: Mapped[list[AppCandidate]] = relationship(back_populates="brand", cascade="all, delete-orphan")
+    detections: Mapped[list[Detection]] = relationship(back_populates="brand", cascade="all, delete-orphan")
 
 
 class OfficialSocialAccount(Timestamped, Base):
@@ -153,3 +185,40 @@ class AppCandidate(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     status: Mapped[CandidateStatus] = mapped_column(Enum(CandidateStatus, name="app_candidate_status", native_enum=False), default=CandidateStatus.NEW, nullable=False)
     brand: Mapped[Brand] = relationship(back_populates="app_candidates")
+
+
+class Detection(Timestamped, Base):
+    """The latest deterministic analysis for one source candidate."""
+
+    __tablename__ = "detections"
+    __table_args__ = (
+        UniqueConstraint("candidate_type", "candidate_id", name="uq_detection_candidate"),
+        Index("ix_detection_brand_severity", "brand_id", "severity"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    brand_id: Mapped[UUID] = mapped_column(ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
+    candidate_type: Mapped[DetectionCandidateType] = mapped_column(Enum(DetectionCandidateType, name="detection_candidate_type", native_enum=False), nullable=False)
+    candidate_id: Mapped[UUID] = mapped_column(nullable=False, index=True)
+    status: Mapped[DetectionStatus] = mapped_column(Enum(DetectionStatus, name="detection_status", native_enum=False), default=DetectionStatus.NEW, nullable=False)
+    threat_type: Mapped[Optional[ThreatType]] = mapped_column(Enum(ThreatType, name="threat_type", native_enum=False))
+    severity: Mapped[Severity] = mapped_column(Enum(Severity, name="severity", native_enum=False), nullable=False)
+    risk_score: Mapped[float] = mapped_column(Float, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    official_match: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    lookalike_detected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    brand: Mapped[Brand] = relationship(back_populates="detections")
+    evidence: Mapped[list[DetectionEvidence]] = relationship(back_populates="detection", cascade="all, delete-orphan", order_by="DetectionEvidence.priority")
+
+
+class DetectionEvidence(Base):
+    __tablename__ = "detection_evidence"
+    __table_args__ = (Index("ix_detection_evidence_detection_priority", "detection_id", "priority"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    detection_id: Mapped[UUID] = mapped_column(ForeignKey("detections.id", ondelete="CASCADE"), nullable=False, index=True)
+    signal_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    available: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    score: Mapped[Optional[float]] = mapped_column(Float)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, nullable=False)
+    detection: Mapped[Detection] = relationship(back_populates="evidence")

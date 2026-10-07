@@ -95,4 +95,16 @@ All records below are local, controlled demo data; they are not scraped, live, o
 
 The migration adds `brands`, `official_social_accounts`, `official_apps`, `official_brand_assets`, `social_candidates`, and `app_candidates`. DBeaver can inspect these tables using the existing local connection. Candidate rows remain observations (`NEW`, `REVIEWED`, or `IGNORED`) and intentionally carry no threat, risk, or confidence score.
 
-Not implemented: scraping, monitoring, risk scoring, look-alike detection, ML/AI, authentication, threat data, dashboards, and production deployment.
+## Detection API
+
+The deterministic local engine persists one current analysis per candidate, with ordered structured evidence. Exact official-asset matches are always `SAFE`; remote logo URLs are explicitly reported as unavailable rather than assigned a fabricated score.
+
+- `POST` `/api/analyze/name`
+- `POST` `/api/analyze/social/{candidate_id}`
+- `POST` `/api/analyze/app/{candidate_id}`
+- `POST` `/api/detections/scan`
+- `GET` `/api/detections` and `GET` `/api/detections/{id}`
+
+Scores use available name, look-alike, description, and publisher signals. A similarity-only outcome is capped below `MEDIUM`; the score is not a statistical confidence measure. No LLM, external API, or live scraping is used.
+
+Not implemented: scraping, live monitoring, authentication, dashboard UI, and production deployment.

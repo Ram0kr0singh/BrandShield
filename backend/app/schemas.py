@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, SocialPlatform
+from app.models import AppPlatform, AssetType, BrandStatus, CandidateStatus, DetectionCandidateType, DetectionStatus, Severity, SocialPlatform, ThreatType
 
 
 class Schema(BaseModel):
@@ -122,3 +122,51 @@ class AppCandidateRead(AppCandidateCreate):
     id: UUID
     brand_id: UUID
     discovered_at: datetime
+
+
+class EvidenceRead(Schema):
+    id: UUID
+    signal_type: str
+    available: bool
+    score: Optional[float]
+    priority: int
+    details: dict
+
+
+class DetectionRead(Schema):
+    id: UUID
+    brand_id: UUID
+    candidate_type: DetectionCandidateType
+    candidate_id: UUID
+    status: DetectionStatus
+    threat_type: Optional[ThreatType]
+    severity: Severity
+    risk_score: float
+    confidence: float
+    official_match: bool
+    lookalike_detected: bool
+    detected_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    evidence: list[EvidenceRead]
+
+
+class NameAnalysisRequest(Schema):
+    official_name: str = Field(min_length=1, max_length=255)
+    candidate_name: str = Field(min_length=1, max_length=255)
+
+
+class NameAnalysisRead(Schema):
+    official_name: str
+    candidate_name: str
+    normalized_official: str
+    normalized_candidate: str
+    similarity: float
+    detected: bool
+    transformations: list[dict]
+
+
+class ScanRead(Schema):
+    analyzed: int
+    created_or_updated: int
+    by_severity: dict[str, int]
