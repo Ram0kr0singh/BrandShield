@@ -8,6 +8,7 @@ from app.api.detections import router as detections_router
 from app.api.monitoring import router as monitoring_router
 from app.api.dashboard import router as dashboard_router
 from app.api.investigations import router as investigations_router
+from app.sources import router as sources_router
 from app.core.config import get_settings
 from app.logos import ensure_logo_directory
 
@@ -26,4 +27,5 @@ app.include_router(detections_router, prefix="/api")
 app.include_router(investigations_router, prefix="/api")
 app.include_router(monitoring_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
+app.include_router(sources_router, prefix="/api")
 app.mount("/static/logos", StaticFiles(directory=ensure_logo_directory()), name="logos")

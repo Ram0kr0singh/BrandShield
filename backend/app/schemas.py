@@ -341,6 +341,13 @@ class MonitoringScanRequest(Schema):
     brand_id: UUID
 
 
+class SourceWarning(Schema):
+    id: str
+    name: str
+    status: str
+    message: str
+
+
 class MonitoringRunRead(Schema):
     id: UUID
     brand_id: UUID
@@ -356,6 +363,7 @@ class MonitoringRunRead(Schema):
     high_count: int
     critical_count: int
     created_at: datetime
+    source_warnings: list[SourceWarning] = Field(default_factory=list)
 
 
 class DashboardOverview(Schema):

@@ -27,3 +27,4 @@ Thumbs.db
 .vscode/
 backend/.pytest-tmp/
 .pytest-tmp/
+screenshots/
