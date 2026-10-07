@@ -50,7 +50,8 @@ def test_seeded_official_assets_are_safe_and_app_mismatch_is_explainable() -> No
     result = analyze_app_candidate(db, suspicious_app.id)
     evidence = {item.signal_type: item for item in result.evidence}
     assert evidence["PUBLISHER_MISMATCH"].details["result"] == "MISMATCH"
-    assert evidence["LOGO_SIMILARITY"].available is False
+    assert evidence["LOGO_SIMILARITY"].available is True
+    assert evidence["LOGO_SIMILARITY"].score is not None and evidence["LOGO_SIMILARITY"].score >= 90
 
 
 def test_scan_persists_without_duplicates_and_api_returns_evidence() -> None:

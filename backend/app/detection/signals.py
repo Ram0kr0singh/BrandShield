@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 
 from app.detection.normalization import analyze_name, normalize_text
+from app.logos import compare_logo_references
 from app.models import AppCandidate, Brand, OfficialApp, OfficialSocialAccount, SocialCandidate
 
 
@@ -68,5 +69,6 @@ def publisher_signal(candidate: AppCandidate, official_apps: list[OfficialApp]) 
     return Signal("PUBLISHER_MISMATCH", True, 0.0 if match else 100.0, 4, {"result": "MATCH" if match else "MISMATCH", "candidate_developer": candidate.developer_name, "official_developers": [item.developer_name for item in official_apps]})
 
 
-def logo_signal() -> Signal:
-    return Signal("LOGO_SIMILARITY", False, None, 6, {"reason": "Only remote synthetic URL references are present; no comparable local image data exists."})
+def logo_signal(official_logo: str | None, candidate_logo: str | None) -> Signal:
+    score, details = compare_logo_references(official_logo, candidate_logo)
+    return Signal("LOGO_SIMILARITY", score is not None, score, 6, details)
