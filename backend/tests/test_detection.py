@@ -34,6 +34,35 @@ def test_normalization_and_lookalike_transformations() -> None:
     assert analyze_name("Nike", "Completely Different").similarity < 30
 
 
+def test_expanded_lookalike_patterns_and_homoglyph_evidence() -> None:
+    positives = {
+        "N1ke": "CHARACTER_SUBSTITUTION",
+        "Nlke": "CHARACTER_SUBSTITUTION",
+        "Nkie": "CHARACTER_TRANSPOSITION",
+        "Niike": "REPEATED_CHARS",
+        "Nike Support": "ADDED_WORDS",
+        "N i k e": "SPACING_VARIATION",
+        "Nіke": "HOMOGLYPH_SUBSTITUTION",
+        "Nikee Store": "CHARACTER_INSERTION",
+    }
+    for candidate, transformation in positives.items():
+        result = analyze_name("Nike", candidate)
+        assert result.detected, candidate
+        assert any(item["type"] == transformation for item in result.transformations), candidate
+    microsoft = analyze_name("Microsoft", "rnicrosoft")
+    assert microsoft.detected
+    assert any(item["type"] == "CHARACTER_SUBSTITUTION" for item in microsoft.transformations)
+    homoglyph = analyze_name("Nike", "Nіke")
+    evidence = next(item for item in homoglyph.transformations if item["type"] == "HOMOGLYPH_SUBSTITUTION")
+    assert evidence["code_points"] == ["U+0456"]
+
+
+def test_real_words_and_exact_official_names_are_not_lookalikes() -> None:
+    for candidate in ["Mike's Bakery", "Nikita Sharma", "Bike Repair Shop", "Nice Shoes Outlet", "Spotted Dog Cafe", "Applewood Studios", "Samson Plumbing"]:
+        assert not analyze_name("Nike", candidate).detected, candidate
+    assert not analyze_name("Adidas", "Adidas").detected
+
+
 def test_seeded_official_assets_are_safe_and_app_mismatch_is_explainable() -> None:
     db = make_session()
     seed_demo_data(db)

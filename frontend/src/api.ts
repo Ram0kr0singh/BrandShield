@@ -24,6 +24,7 @@ export type Overview = { brand:Brand; summary:Record<string,number>; risk_distri
 export type Detection = { id:string; risk_score:number; severity:string; threat_type:string|null; status:string; detected_at:string; candidate:{name:string;source:string;publisher?:string|null}; evidence:{signal_type:string;available:boolean;score:number|null;details:Record<string,unknown>}[] };
 export type Note={id:string;content:string;actor:string;created_at:string}; export type Activity={id:string;event_type:string;previous_value:string|null;new_value:string|null;details:Record<string,unknown>;actor:string;created_at:string}; export type Draft={id:string;draft_type:string;content:string;evidence_summary:string[];created_at:string}; export type Investigation={detection_id:string;status:string;notes:Note[];activity:Activity[];drafts:Draft[]};
 export type AnalystAnalysis={summary:string;risk_rationale:string;key_evidence:{signal_type:string;summary:string;score:number|null;details:Record<string,unknown>}[];uncertainties:string[];recommended_actions:string[];confidence:string;source_facts:{risk_score:number;severity:string;candidate_name:string;[key:string]:unknown};generated_at:string;provider:string};
+export type NameAnalysis={official_name:string;candidate_name:string;normalized_official:string;normalized_candidate:string;similarity:number;detected:boolean;transformations:Record<string,unknown>[]};
 const post=<T>(path:string,body:unknown)=>request<T>(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
 export const api = {
   brands:()=>request<Brand[]>("/brands"),
@@ -48,5 +49,6 @@ export const api = {
   status:(id:string,status:string)=>post<Investigation>(`/detections/${id}/status`,{status}),
   note:(id:string,content:string)=>post<Investigation>(`/detections/${id}/notes`,{content}),
   draft:(id:string,draft_type:string)=>post<Draft>(`/detections/${id}/remediation-drafts`,{draft_type}),
+  analyzeName:(official_name:string,candidate_name:string)=>post<NameAnalysis>("/analyze/name",{official_name,candidate_name}),
   analyze:(id:string)=>post<AnalystAnalysis>(`/detections/${id}/analyze`,{})
 };
