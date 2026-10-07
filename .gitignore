@@ -25,3 +25,5 @@ data/logos/uploads/
 .DS_Store
 Thumbs.db
 .vscode/
+backend/.pytest-tmp/
+.pytest-tmp/
