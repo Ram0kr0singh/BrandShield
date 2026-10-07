@@ -28,6 +28,8 @@ def test_investigation_status_notes_audit_and_drafts() -> None:
         assert client.post(endpoint + "/status", json={"status": "CONFIRMED_THREAT"}).status_code == 422
         note = client.post(endpoint + "/notes", json={"content": "Reviewed publisher mismatch."})
         assert note.status_code == 200 and note.json()["notes"][0]["content"] == "Reviewed publisher mismatch."
+        note_activity = next(event for event in note.json()["activity"] if event["event_type"] == "NOTE_ADDED")
+        assert note_activity["details"]["note_id"] == note.json()["notes"][0]["id"]
         assert client.post(endpoint + "/notes", json={"content": "   "}).status_code == 422
         draft = client.post(endpoint + "/remediation-drafts", json={"draft_type": "APP_STORE"})
         assert draft.status_code == 200

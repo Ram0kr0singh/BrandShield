@@ -62,6 +62,9 @@ def add_note(detection_id: UUID, payload: NoteCreate, db: Session = Depends(get_
     _ensure_created(item, db)
     note = InvestigationNote(detection_id=item.id, content=payload.content, actor=ACTOR)
     db.add(note)
+    # Allocate the UUID before recording it in the audit event.  Without this
+    # flush, the activity log can incorrectly persist the literal "None".
+    db.flush()
     db.add(_activity(item.id, InvestigationEventType.NOTE_ADDED, details={"note_id": str(note.id)}))
     db.commit()
     return _read(_detection(detection_id, db))
