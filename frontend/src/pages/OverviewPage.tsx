@@ -4,6 +4,8 @@ import { LoadingState } from "../components/common/LoadingState";
 import { BrandSwitcher } from "../components/navigation/BrandSwitcher";
 import { DigitalPerimeterBriefing } from "../components/overview/DigitalPerimeterBriefing";
 import { PerimeterVisualization } from "../components/overview/PerimeterVisualization";
+import { ExecutiveMetrics } from "../components/overview/ExecutiveMetrics";
+import SourceStatus from "../SourceStatus";
 import { SourceSplit } from "../components/overview/SourceSplit";
 import { IntelligenceLedger } from "../components/overview/IntelligenceLedger";
 import { ThreatSummary } from "../components/overview/ThreatSummary";
@@ -96,13 +98,19 @@ export const OverviewPage: React.FC = () => {
         threats={recent_threats}
       />
 
-      {/* 3. Restrained Source Channel Split */}
+      {/* 3. Executive Monitoring Metrics */}
+      <ExecutiveMetrics overview={data} />
+
+      {/* 4. Monitoring Source Status */}
+      <SourceStatus showControls={true} />
+
+      {/* 5. Restrained Source Channel Split */}
       <SourceSplit overview={data} />
 
-      {/* 4. Intelligence Ledger */}
+      {/* 6. Intelligence Ledger */}
       <IntelligenceLedger threats={recent_threats} />
 
-      {/* 5. Demoted / Secondary Analytics (Charts below) */}
+      {/* 7. Demoted / Secondary Analytics (Charts below) */}
       <div className="pt-8 border-t border-[var(--border-subtle)]">
         <div className="mb-4">
           <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] uppercase font-semibold">
@@ -114,4 +122,5 @@ export const OverviewPage: React.FC = () => {
     </div>
   );
 };
+
 

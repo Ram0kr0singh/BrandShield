@@ -1,9 +1,11 @@
+/* AEGIS Source Status Styling - Aligned with Observatory Design System */
+
 .source-status {
-  background: #101b2d;
-  border: 1px solid #253650;
-  border-radius: 10px;
-  padding: 15px 17px;
-  margin: 0 0 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 0 32px;
 }
 
 .source-status-heading {
@@ -11,108 +13,146 @@
   justify-content: space-between;
   align-items: center;
   gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .source-status-heading > div {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+}
+
+.source-status-heading strong {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .source-status-heading span,
 .source-status-loading {
-  font-size: 12px;
-  color: #9eb1ca;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .source-refresh {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 9px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* Card Strip */
+.source-refresh:hover:not(:disabled) {
+  background: var(--bg-highlight);
+  border-color: var(--border-strong);
+}
+
+.source-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Source Card Strip */
 .source-chip-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 /* Card base */
 .source-card {
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   text-align: left;
   user-select: none;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
   transition: border-color 0.15s ease, background-color 0.15s ease, outline 0.15s ease;
   position: relative;
 }
 
-.source-card:focus-visible {
-  outline: 2px solid #38bdf8;
-  outline-offset: 2px;
+.source-card:hover {
+  border-color: var(--border-default);
 }
 
-/* === Requirement 2: ONE status-to-style mapping === */
+.source-card:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: 1px;
+}
 
-/* ONLINE = green */
+/* Status Mappings */
+/* ONLINE = legitimate green */
 .source-card.online {
-  border: 1px solid #10b981;
-  background-color: rgba(16, 185, 129, 0.08);
+  border-color: var(--color-legitimate-border);
+  background-color: var(--color-legitimate-bg);
 }
 .source-card.online .source-dot {
-  background-color: #34d399;
+  background-color: var(--color-legitimate);
+  box-shadow: 0 0 6px rgba(134, 184, 164, 0.4);
 }
 .source-card.online .source-card-status {
-  color: #34d399;
+  color: var(--color-legitimate);
 }
 
-/* DEGRADED = amber */
+/* DEGRADED = suspicious amber */
 .source-card.degraded {
-  border: 1px solid #f59e0b;
-  background-color: rgba(245, 158, 11, 0.08);
+  border-color: var(--color-suspicious-border);
+  background-color: var(--color-suspicious-bg);
 }
 .source-card.degraded .source-dot {
-  background-color: #fbbf24;
+  background-color: var(--color-suspicious);
+  box-shadow: 0 0 6px rgba(217, 174, 95, 0.4);
 }
 .source-card.degraded .source-card-status {
-  color: #fbbf24;
+  color: var(--color-suspicious);
 }
 
-/* NOT_CONFIGURED = grey */
+/* NOT_CONFIGURED = muted grey */
 .source-card.not_configured {
-  border: 1px solid #64748b;
-  background-color: rgba(100, 116, 139, 0.08);
+  border-color: var(--border-subtle);
+  background-color: var(--bg-elevated);
 }
 .source-card.not_configured .source-dot {
-  background-color: #94a3b8;
+  background-color: var(--text-faint);
 }
 .source-card.not_configured .source-card-status {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
-/* === Requirement 4: Selection ring visually separate from status colours === */
+/* Selected state */
 .source-card.selected {
-  outline: 2px solid #38bdf8;
-  outline-offset: 2px;
+  outline: 1px solid var(--text-primary);
+  outline-offset: 1px;
 }
 
 .source-selected-tag {
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid #38bdf8;
-  border-radius: 99px;
-  padding: 1px 6px;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 /* Card inner structure */
@@ -131,16 +171,17 @@
 }
 
 .source-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex: none;
 }
 
 .source-card-name {
+  font-family: var(--font-sans);
   font-size: 13px;
-  font-weight: 600;
-  color: #e2e8f0;
+  font-weight: 500;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,32 +195,38 @@
 }
 
 .source-card-status {
-  font-size: 11px;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .source-demo-tag {
+  font-family: var(--font-mono);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #ffd685;
-  border: 1px solid #80652f;
-  background: rgba(245, 158, 11, 0.1);
-  border-radius: 99px;
+  color: var(--color-suspicious);
+  border: 1px solid var(--color-suspicious-border);
+  background: var(--color-suspicious-bg);
+  border-radius: 4px;
   padding: 1px 5px;
 }
 
 /* Card rows: message and last successful connection */
 .source-card-message {
+  font-family: var(--font-sans);
   font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.4;
+  color: var(--text-secondary);
+  line-height: 1.45;
   min-height: 32px;
 }
 
 .source-card-time {
-  font-size: 11px;
-  color: #64748b;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 /* Action button row */
@@ -189,89 +236,104 @@
   gap: 8px;
   margin-top: 4px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .source-action-btn {
+  font-family: var(--font-mono);
   font-size: 11px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   border-radius: 5px;
   cursor: pointer;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
 }
 
 .source-action-btn:hover:not(:disabled) {
-  background: #334155;
-  border-color: #475569;
+  background: var(--bg-highlight);
+  border-color: var(--border-strong);
 }
 
 .source-action-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .source-card-error {
-  color: #f87171;
-  font-size: 11px;
+  color: var(--color-critical);
+  font-family: var(--font-mono);
+  font-size: 10px;
   margin: 4px 0 0;
 }
 
 /* Selection caption */
 .source-selection-caption {
-  font-size: 12px;
-  color: #94a3b8;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
   margin-top: 12px;
   padding-left: 2px;
-  font-style: italic;
 }
 
 /* Unavailable error state */
 .source-status-unavailable {
-  color: #ffb7a6;
-  font-size: 12px;
-  margin-top: 10px;
+  color: var(--color-critical);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 12px;
 }
 
 .source-status-unavailable button {
   margin-left: 10px;
-  padding: 4px 8px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
   font-size: 11px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* Page notices (Social/Apps pages) */
 .source-page-notice {
-  background: #10233a;
-  border-left: 3px solid #5da7ef;
-  border-radius: 5px;
-  padding: 10px 13px;
-  margin-bottom: 14px;
-  color: #b9cdeb;
-  font-size: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--color-low);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .source-page-notice.source-warning {
-  background: #30291a;
-  border-color: #d7a93d;
-  color: #ffe0a0;
+  background: var(--color-suspicious-bg);
+  border-color: var(--color-suspicious-border);
+  border-left: 3px solid var(--color-suspicious);
+  color: var(--color-suspicious);
 }
 
 .source-page-notice.unavailable {
-  border-color: #8290a4;
-  color: #b4c1d2;
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+  border-left: 3px solid var(--text-muted);
+  color: var(--text-muted);
 }
 
 .scan-source-warning {
-  background: #30291a;
-  border: 1px solid #80652f;
-  border-left: 3px solid #d7a93d;
-  border-radius: 5px;
+  background: var(--color-suspicious-bg);
+  border: 1px solid var(--color-suspicious-border);
+  border-left: 3px solid var(--color-suspicious);
+  border-radius: 6px;
   padding: 11px 14px;
   margin: 0 0 16px;
-  color: #ffe0a0;
-  font-size: 13px;
+  color: var(--color-suspicious);
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 @media (max-width: 650px) {
