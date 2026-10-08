@@ -9,6 +9,7 @@ from app.database.session import get_db
 from app.detection.engine import scan_all
 from app.models import AppCandidate, Brand, Detection, MonitoringRun, MonitoringRunStatus, Severity, SocialCandidate
 from app.schemas import MonitoringRunRead, MonitoringScanRequest
+from app.sources import degraded_source_warnings
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 
@@ -18,7 +19,7 @@ def _summary(run: MonitoringRun) -> MonitoringRunRead:
 
 
 @router.post("/scan", response_model=MonitoringRunRead)
-def scan(payload: MonitoringScanRequest, db: Session = Depends(get_db)) -> MonitoringRun:
+def scan(payload: MonitoringScanRequest, db: Session = Depends(get_db)) -> dict:
     if db.get(Brand, payload.brand_id) is None:
         raise HTTPException(status_code=404, detail="Brand not found")
     social_count = len(list(db.scalars(select(SocialCandidate.id).where(SocialCandidate.brand_id == payload.brand_id))))
@@ -40,7 +41,9 @@ def scan(payload: MonitoringScanRequest, db: Session = Depends(get_db)) -> Monit
         run.critical_count = counts[Severity.CRITICAL]
         db.commit()
         db.refresh(run)
-        return run
+        response = _summary(run).model_dump()
+        response["source_warnings"] = degraded_source_warnings()
+        return response
     except Exception:
         run.status = MonitoringRunStatus.FAILED
         run.completed_at = datetime.now(timezone.utc)

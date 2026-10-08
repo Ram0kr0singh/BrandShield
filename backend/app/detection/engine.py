@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.detection.signals import Signal, app_official_signal, description_signal, logo_signal, lookalike_signal, name_signal, publisher_signal, social_official_signal
 from app.models import AppCandidate, Brand, Detection, DetectionCandidateType, DetectionEvidence, DetectionStatus, OfficialApp, OfficialSocialAccount, Severity, SocialCandidate, ThreatType
 
-WEIGHTS = {"NAME_SIMILARITY": 25, "LOOKALIKE_NAME": 15, "DESCRIPTION_SIMILARITY": 20, "PUBLISHER_MISMATCH": 15}
+WEIGHTS = {"NAME_SIMILARITY": 25, "LOOKALIKE_NAME": 15, "DESCRIPTION_SIMILARITY": 20, "PUBLISHER_MISMATCH": 15, "LOGO_SIMILARITY": 15}
 
 
 def _severity(score: float) -> Severity:
@@ -30,10 +30,23 @@ def _score(signals: Iterable[Signal], official_match: bool) -> tuple[float, floa
     if official_match:
         return 0.0, 100.0
     scored = [item for item in signal_list if item.available and item.score is not None and item.signal_type in WEIGHTS]
-    total_weight = sum(WEIGHTS[item.signal_type] for item in scored)
-    raw = sum(WEIGHTS[item.signal_type] * item.score for item in scored) / total_weight if total_weight else 0.0
+    weighted = []
+    for item in scored:
+        # A dissimilar logo is not evidence that a candidate is legitimate.
+        # Preserve the measured signal for analysts, but only let a meaningful
+        # match boost the risk score.
+        if item.signal_type == "LOGO_SIMILARITY" and item.score < 70:
+            item.details.update({"counted": False, "reason": "below 70, not counted as evidence"})
+            continue
+        weighted.append(item)
+    total_weight = sum(WEIGHTS[item.signal_type] for item in weighted)
+    raw = sum(WEIGHTS[item.signal_type] * item.score for item in weighted) / total_weight if total_weight else 0.0
     # Similarity alone is explanatory, but cannot independently become a severe verdict.
-    corroborated = any(item.signal_type == "PUBLISHER_MISMATCH" and item.score == 100 for item in scored) or any(item.signal_type == "DESCRIPTION_SIMILARITY" and item.score >= 70 for item in scored)
+    corroborated = (
+        any(item.signal_type == "PUBLISHER_MISMATCH" and item.score == 100 for item in scored)
+        or any(item.signal_type == "DESCRIPTION_SIMILARITY" and item.score >= 70 for item in scored)
+        or any(item.signal_type == "LOGO_SIMILARITY" and item.score is not None and item.score >= 90 for item in scored)
+    )
     if not corroborated:
         raw = min(raw, 49.0)
     confidence = round(100 * sum(item.available for item in signal_list) / len(signal_list), 2) if signal_list else 0.0
@@ -90,7 +103,7 @@ def analyze_social_candidate(db: Session, candidate_id: UUID) -> Detection:
     assert brand is not None
     accounts = list(db.scalars(select(OfficialSocialAccount).where(OfficialSocialAccount.brand_id == brand.id)))
     name, name_result = name_signal(brand, candidate.display_name or candidate.handle)
-    signals = [social_official_signal(candidate, accounts), name, lookalike_signal(name_result), description_signal(candidate.description, [brand.description or ""] + [item.description or "" for item in accounts]), logo_signal()]
+    signals = [social_official_signal(candidate, accounts), name, lookalike_signal(name_result), description_signal(candidate.description, [brand.description or ""] + [item.description or "" for item in accounts]), logo_signal(brand.logo_url, candidate.avatar_url)]
     return _persist(db, brand, DetectionCandidateType.SOCIAL, candidate.id, signals)
 
 
@@ -102,7 +115,8 @@ def analyze_app_candidate(db: Session, candidate_id: UUID) -> Detection:
     assert brand is not None
     apps = list(db.scalars(select(OfficialApp).where(OfficialApp.brand_id == brand.id)))
     name, name_result = name_signal(brand, candidate.app_name)
-    signals = [app_official_signal(candidate, apps), name, lookalike_signal(name_result), publisher_signal(candidate, apps), description_signal(candidate.description, [brand.description or ""] + [item.description or "" for item in apps]), logo_signal()]
+    official_logo = brand.logo_url or next((item.logo_url for item in apps if item.logo_url), None)
+    signals = [app_official_signal(candidate, apps), name, lookalike_signal(name_result), publisher_signal(candidate, apps), description_signal(candidate.description, [brand.description or ""] + [item.description or "" for item in apps]), logo_signal(official_logo, candidate.logo_url)]
     return _persist(db, brand, DetectionCandidateType.APP, candidate.id, signals)
 
 

@@ -11,6 +11,7 @@ export const AppSidebar: React.FC = () => {
     { label: "Social Monitoring", path: "/social" },
     { label: "App Monitoring", path: "/apps" },
     { label: "Look-alike Detection", path: "/lookalikes" },
+    { label: "Check Any Name", path: "/check" },
     { label: "Threat Surface", path: "/threats" },
   ];
 
