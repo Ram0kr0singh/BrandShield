@@ -10,6 +10,8 @@ The project is designed for controlled demonstrations and competition evaluation
 
 ## Quick Links
 
+- **Live Preview:** [Open BrandShield](https://brand-shield-jny6-git-frontend-ae-8f6fa2-harsh0012-uxs-projects.vercel.app/)
+- **GitHub Repository:** [View Source Code](https://github.com/Ram0kr0singh/BrandShield)
 - [Architecture](#architecture)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
